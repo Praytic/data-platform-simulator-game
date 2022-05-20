@@ -1,0 +1,9 @@
+name,recordTemplate
+Laser Scanner I,{"formMatching":0}
+Laser Scanner II,{"formMatching":0}
+Laser Scanner III,{"formMatching":0}
+Camera N1,{"color":"FFFFFF","scratches":[0]}
+Camera N2,{"color":"FFFFFF","scratches":[0]}
+Camera N3,{"color":"FFFFFF","scratches":[0]}
+Hammering Test,{"survived":true,"defects":[{}],"impactStrength":0}
+Microwave Test,{"survived":true,"defects":[{}],"wattage":0,"duration":0}
