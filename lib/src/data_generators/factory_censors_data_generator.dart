@@ -5,14 +5,18 @@ import 'package:flutter/foundation.dart';
 import 'package:csv/csv.dart';
 
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:logging/logging.dart';
 
 class FactoryCensorsDataGenerator {
+  static final _log = Logger('FactoryCensorsDataGenerator');
+
   static final List<Factory> _factoryCache = [];
   static final List<Site> _siteCache = [];
   static final List<Censor> _censorCache = [];
   static final List<Product> _productCache = [];
 
   Future<void> generateStreamOfData(Factory factory, int size, int? seed) async {
+    _log.info("Generating ${size} number of records for ${factory}");
     var productionLinesCount = factory.productionLines.length;
     var random = Random(seed);
     var streamBoundaryByProductionLine = <ProductionLine, int>{};
@@ -20,9 +24,25 @@ class FactoryCensorsDataGenerator {
       streamBoundaryByProductionLine[factory.productionLines[i]] =
           random.nextInt(size);
     }
+    streamBoundaryByProductionLine.forEach((productionLine, streamBoundary) {
+      var censorsCount = productionLine.censors.length;
+      var streamBoundaryByCensor = <Censor, int>{};
+      for (int i = 0; i < censorsCount; i++) {
+        streamBoundaryByCensor[productionLine.censors[i]] =
+            random.nextInt(streamBoundary);
+      }
+      var previousBoundary = 0;
+      for (var censorBoundary in streamBoundaryByCensor.entries.toList()
+        ..sort((e1, e2) => e1.value.compareTo(e2.value))) {
+        var size = censorBoundary.value - previousBoundary;
+        previousBoundary = censorBoundary.value;
+        _enrichOutputFile(censorBoundary.key.producedFile, size, seed);
+      }
+    });
   }
 
   Future<Factory> generateFactory(int? seed) async {
+    _log.info("Generating factory");
     if (_factoryCache.isEmpty) {
       var factories = await Factory.fromCsv('assets/csv/factories.csv');
       for (var factory in factories) {
@@ -37,7 +57,6 @@ class FactoryCensorsDataGenerator {
             .map((e) => ProductionLine(e, [initialCensor]))
             .toList();
       }
-
       _factoryCache.addAll(factories);
     }
     return _factoryCache.removeAt(Random(seed).nextInt(_factoryCache.length));
@@ -66,6 +85,7 @@ class FactoryCensorsDataGenerator {
 
   static _enrichOutputFile(
       RawFile outputFile, int size, int? seed) {
+    _log.info("Generating ${size} number of records for ${outputFile}");
     var schema = jsonDecode(outputFile.schema) as Map<String, dynamic>;
     var random = Random(seed);
     for (int i = 0; i < size; i++) {
@@ -182,9 +202,9 @@ class ProductComponent {
 @immutable
 class Censor {
   final String name;
-  final List<RawFile> producedFiles;
+  final RawFile producedFile;
 
-  Censor(this.name, this.producedFiles);
+  Censor(this.name, this.producedFile);
 
   static Future<List<Censor>> fromCsv(String path) async {
     return CsvToListConverter()
@@ -195,7 +215,7 @@ class Censor {
       var fileName = "${censorName.toLowerCase().replaceAll(" ", "-")}"
           "-${DateTime.now()}";
       var schema = e[1] as String;
-      return Censor(censorName, [RawFile._(fileName, "json", schema)]);
+      return Censor(censorName, RawFile._(fileName, "json", schema));
     }).toList();
   }
 }
