@@ -1,9 +1,9 @@
-name,recordTemplate
-Laser Scanner I,{"formMatching":0}
-Laser Scanner II,{"formMatching":0}
-Laser Scanner III,{"formMatching":0}
-Camera N1,{"color":"FFFFFF","scratches":[0]}
-Camera N2,{"color":"FFFFFF","scratches":[0]}
-Camera N3,{"color":"FFFFFF","scratches":[0]}
-Hammering Test,{"survived":true,"defects":[{}],"impactStrength":0}
-Microwave Test,{"survived":true,"defects":[{}],"wattage":0,"duration":0}
+name,schema
+Laser Scanner I,{"formMatching":[0.0,1.0]}
+Laser Scanner II,{"formMatching":[0.0,1.0]}
+Laser Scanner III,{"formMatching":[0.0,1.0]}
+Camera N1,{"color_Variety":["#FFFFFF","#F9EFED","#F5F0EF","#F6F4F3","#F9F7F6"],"scratches":[0.0,100.0]}
+Camera N2,{"color_Variety":["#FFFFFF","#F9EFED","#F5F0EF","#F6F4F3","#F9F7F6"],"scratches":[0.0,100.0]}
+Camera N3,{"color_Variety":["#FFFFFF","#F9EFED","#F5F0EF","#F6F4F3","#F9F7F6"],"scratches":[0.0,100.0]}
+Hammering Test,{"survived":[true,false],"defects":[{}],"impactStrength":[100.0,1000.0]}
+Microwave Test,{"survived":[true,false],"defects":[{}],"wattage":[100,1000],"duration":[60,3600]}

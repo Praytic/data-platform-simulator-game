@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:csv/csv.dart';
@@ -11,37 +12,82 @@ class FactoryCensorsDataGenerator {
   static final List<Censor> _censorCache = [];
   static final List<Product> _productCache = [];
 
-  static Future<Factory> generateFactory(int seed) async {
+  Future<void> generateStreamOfData(Factory factory, int size, int? seed) async {
+    var productionLinesCount = factory.productionLines.length;
+    var random = Random(seed);
+    var streamBoundaryByProductionLine = <ProductionLine, int>{};
+    for (int i = 0; i < productionLinesCount; i++) {
+      streamBoundaryByProductionLine[factory.productionLines[i]] =
+          random.nextInt(size);
+    }
+  }
+
+  Future<Factory> generateFactory(int? seed) async {
     if (_factoryCache.isEmpty) {
-      _factoryCache.addAll(await Factory.fromCsv('assets/csv/factories.csv'));
+      var factories = await Factory.fromCsv('assets/csv/factories.csv');
+      for (var factory in factories) {
+        var initialSite = await _generateSite(seed);
+        var initialProduct = await _generateProduct(seed);
+        var initialCensor = await _generateCensor(seed);
+        factory.onboardedSites = [initialSite];
+        factory.productsBySite = {
+          initialSite: [initialProduct]
+        };
+        factory.productionLines = initialProduct.productComponents
+            .map((e) => ProductionLine(e, [initialCensor]))
+            .toList();
+      }
+
+      _factoryCache.addAll(factories);
     }
     return _factoryCache.removeAt(Random(seed).nextInt(_factoryCache.length));
   }
 
-  static Future<Site> generateSite(int seed) async {
+  static Future<Site> _generateSite(int? seed) async {
     if (_siteCache.isEmpty) {
       _siteCache.addAll(await Site.fromCsv('assets/csv/sites.csv'));
     }
     return _siteCache.removeAt(Random(seed).nextInt(_siteCache.length));
   }
 
-  static Future<Product> generateProducts(int seed) async {
+  static Future<Product> _generateProduct(int? seed) async {
     if (_productCache.isEmpty) {
       _productCache.addAll(await Product.fromCsv('assets/csv/products.csv'));
     }
     return _productCache.removeAt(Random(seed).nextInt(_productCache.length));
   }
 
-  static Future<Censor> generateCensors(int seed) async {
+  static Future<Censor> _generateCensor(int? seed) async {
     if (_censorCache.isEmpty) {
       _censorCache.addAll(await Censor.fromCsv('assets/csv/censors.csv'));
     }
     return _censorCache.removeAt(Random(seed).nextInt(_censorCache.length));
   }
+
+  static _enrichOutputFile(
+      RawFile outputFile, int size, int? seed) {
+    var schema = jsonDecode(outputFile.schema) as Map<String, dynamic>;
+    var random = Random(seed);
+    for (int i = 0; i < size; i++) {
+      var record = <String, dynamic>{};
+      for (var key in schema.keys) {
+        var value = schema[key] as List;
+        if (value[0] is bool) {
+          record[key] = random.nextBool();
+        } else if (value[0] is int) {
+          record[key] = random.nextInt(value[1] - value[0]) + value[0];
+        } else if (value[0] is double) {
+          record[key] = random.nextDouble() * (value[1] - value[0]) + value[0];
+        } else if (value[0] is String) {
+          record[key] = value[random.nextInt(value.length)];
+        }
+      }
+      outputFile.records.add(jsonEncode(record));
+    }
+  }
 }
 
 class Factory {
-
   final String name;
   List<Site> onboardedSites;
   Map<Site, List<Product>> productsBySite;
@@ -98,22 +144,22 @@ class Product {
 
   Product(this.name, this.productComponents);
 
-  Product.productComponentNames(this.name, List<String> productComponentNames) :
-        productComponents = productComponentNames.map((e) =>
-            ProductComponent(e)).toList();
+  Product.productComponentNames(this.name, List<String> productComponentNames)
+      : productComponents =
+            productComponentNames.map((e) => ProductComponent(e)).toList();
 
   static Future<List<Product>> fromCsv(String path) async {
     Map<String, List<String>> productComponentsByProduct = {};
-    var rawRecords = CsvToListConverter()
-        .convert(await rootBundle.loadString(path))
-        .skip(1);
+    var rawRecords =
+        CsvToListConverter().convert(await rootBundle.loadString(path)).skip(1);
     for (var rawRecord in rawRecords) {
-      productComponentsByProduct.putIfAbsent(rawRecord[0] as String, () => [])
+      productComponentsByProduct
+          .putIfAbsent(rawRecord[0] as String, () => [])
           .add(rawRecord[1] as String);
     }
     return productComponentsByProduct
         .map((key, value) =>
-        MapEntry(key, Product.productComponentNames(key, value)))
+            MapEntry(key, Product.productComponentNames(key, value)))
         .values
         .toList();
   }
@@ -136,27 +182,33 @@ class ProductComponent {
 @immutable
 class Censor {
   final String name;
-  final String recordTemplate;
+  final List<RawFile> producedFiles;
 
-  Censor(this.name, this.recordTemplate);
+  Censor(this.name, this.producedFiles);
 
   static Future<List<Censor>> fromCsv(String path) async {
     return CsvToListConverter()
         .convert(await rootBundle.loadString(path))
         .skip(1)
-        .map((e) => Censor(e[0] as String, e[1] as String))
-        .toList();
+        .map((e) {
+      var censorName = e[0] as String;
+      var fileName = "${censorName.toLowerCase().replaceAll(" ", "-")}"
+          "-${DateTime.now()}";
+      var schema = e[1] as String;
+      return Censor(censorName, [RawFile._(fileName, "json", schema)]);
+    }).toList();
   }
 }
 
 class RawFile {
   final String nameTemplate;
   final String format;
+  String schema;
   List<String> records;
 
-  RawFile._(this.nameTemplate, this.format) : this.records = [];
+  RawFile._(this.nameTemplate, this.format, this.schema) : records = [];
 
-  RawFile(this.nameTemplate, this.format, this.records);
+  RawFile(this.nameTemplate, this.format, this.records, this.schema);
 
   set _records(value) {
     records = value;
