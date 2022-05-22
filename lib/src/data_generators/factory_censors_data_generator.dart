@@ -1,4 +1,3 @@
-import 'dart:collection';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -9,6 +8,8 @@ import 'package:flutter/services.dart' show rootBundle;
 class FactoryCensorsDataGenerator {
   static final List<Factory> _factoryCache = [];
   static final List<Site> _siteCache = [];
+  static final List<Censor> _censorCache = [];
+  static final List<Product> _productCache = [];
 
   static Future<Factory> generateFactory(int seed) async {
     if (_factoryCache.isEmpty) {
@@ -25,17 +26,17 @@ class FactoryCensorsDataGenerator {
   }
 
   static Future<Product> generateProducts(int seed) async {
-    if (_siteCache.isEmpty) {
-      _siteCache.addAll(await Site.fromCsv('assets/csv/sites.csv'));
+    if (_productCache.isEmpty) {
+      _productCache.addAll(await Product.fromCsv('assets/csv/products.csv'));
     }
-    return _siteCache.removeAt(Random(seed).nextInt(_siteCache.length));
+    return _productCache.removeAt(Random(seed).nextInt(_productCache.length));
   }
 
   static Future<Censor> generateCensors(int seed) async {
-    if (_siteCache.isEmpty) {
-      _siteCache.addAll(await Site.fromCsv('assets/csv/sites.csv'));
+    if (_censorCache.isEmpty) {
+      _censorCache.addAll(await Censor.fromCsv('assets/csv/censors.csv'));
     }
-    return _siteCache.removeAt(Random(seed).nextInt(_siteCache.length));
+    return _censorCache.removeAt(Random(seed).nextInt(_censorCache.length));
   }
 }
 
@@ -96,6 +97,26 @@ class Product {
   final List<ProductComponent> productComponents;
 
   Product(this.name, this.productComponents);
+
+  Product.productComponentNames(this.name, List<String> productComponentNames) :
+        productComponents = productComponentNames.map((e) =>
+            ProductComponent(e)).toList();
+
+  static Future<List<Product>> fromCsv(String path) async {
+    Map<String, List<String>> productComponentsByProduct = {};
+    var rawRecords = CsvToListConverter()
+        .convert(await rootBundle.loadString(path))
+        .skip(1);
+    for (var rawRecord in rawRecords) {
+      productComponentsByProduct.putIfAbsent(rawRecord[0] as String, () => [])
+          .add(rawRecord[1] as String);
+    }
+    return productComponentsByProduct
+        .map((key, value) =>
+        MapEntry(key, Product.productComponentNames(key, value)))
+        .values
+        .toList();
+  }
 }
 
 class ProductionLine {
@@ -118,6 +139,14 @@ class Censor {
   final String recordTemplate;
 
   Censor(this.name, this.recordTemplate);
+
+  static Future<List<Censor>> fromCsv(String path) async {
+    return CsvToListConverter()
+        .convert(await rootBundle.loadString(path))
+        .skip(1)
+        .map((e) => Censor(e[0] as String, e[1] as String))
+        .toList();
+  }
 }
 
 class RawFile {
