@@ -2,17 +2,20 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 /// An extremely silly example of a game state.
 ///
-/// Tracks only a single variable, [progress], and calls [onWin] when
-/// the value of [progress] reaches [goal].
+/// Tracks only a single variable, [moneyLowerBoundary], and calls [onWin] when
+/// the value of [moneyLowerBoundary] reaches [moneyLowerBoundary].
 class GameSessionState extends ChangeNotifier {
   final VoidCallback onWin;
 
-  GameSessionState({required this.onWin});
+  final int moneyLowerBoundary;
+
+  GameSessionState({required this.onWin, this.moneyLowerBoundary = 0});
 
   int _progress = 0;
 
@@ -21,9 +24,8 @@ class GameSessionState extends ChangeNotifier {
   void setProgress(int value) {
     _progress = value;
     notifyListeners();
-  }
-
-  void endGame() {
-    onWin();
+    if (_progress <= moneyLowerBoundary) {
+      onWin();
+    }
   }
 }

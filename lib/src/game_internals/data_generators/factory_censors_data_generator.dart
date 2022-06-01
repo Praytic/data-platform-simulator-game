@@ -15,7 +15,7 @@ class FactoryCensorsDataGenerator {
   static final List<Censor> _censorCache = [];
   static final List<Product> _productCache = [];
 
-  Future<void> generateStreamOfData(Factory factory, int size, int? seed) async {
+  static Future<void> generateStreamOfData(Factory factory, int size, int? seed) async {
     _log.info("Generating ${size} number of records for ${factory}");
     var productionLinesCount = factory.productionLines.length;
     var random = Random(seed);
@@ -41,7 +41,7 @@ class FactoryCensorsDataGenerator {
     });
   }
 
-  Future<Factory> generateFactory(int? seed) async {
+  static Future<Factory> generateFactory(int? seed) async {
     _log.info("Generating factory");
     if (_factoryCache.isEmpty) {
       var factories = await Factory.fromCsv('assets/csv/factories.csv');

@@ -12,13 +12,14 @@ import 'package:provider/provider.dart';
 import '../ads/ads_controller.dart';
 import '../audio/audio_controller.dart';
 import '../audio/sounds.dart';
-import '../game_internals/level_state.dart';
+import '../game_internals/game_session_state.dart';
 import '../games_services/games_services.dart';
 import '../games_services/score.dart';
 import '../in_app_purchase/in_app_purchase.dart';
 import '../player_progress/player_progress.dart';
 import '../style/confetti.dart';
 import '../style/palette.dart';
+import 'money_screen.dart';
 
 class PlaySessionScreen extends StatefulWidget {
   const PlaySessionScreen({Key? key}) : super(key: key);
@@ -38,13 +39,13 @@ class _PlaySessionScreenState extends State<PlaySessionScreen> {
 
   late DateTime _startOfPlay;
 
+  late Timer _timer;
+
   @override
   Widget build(BuildContext context) {
     final palette = context.watch<Palette>();
     final victoryStateProvider = ChangeNotifierProvider(
-      create: (context) => GameSessionState(
-        onWin: _playerWon,
-      ),
+      create: (context) => GameSessionState(onWin: _playerWon),
     );
     final celebrationScreen = SizedBox.expand(
       child: Visibility(
@@ -66,6 +67,12 @@ class _PlaySessionScreenState extends State<PlaySessionScreen> {
         ),
       ),
     );
+    final core = Consumer<GameSessionState>(
+      builder: (context, levelState, child) => MoneyScreen(
+        value: 10,
+        onChanged: (value) => levelState.setProgress(value),
+      ),
+    );
     final endGameButton = Consumer<GameSessionState>(
       builder: (context, state, child) => Padding(
         padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 8.0),
@@ -73,7 +80,7 @@ class _PlaySessionScreenState extends State<PlaySessionScreen> {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () => {
-              state.endGame(),
+              state.onWin(),
             },
             child: const Text('Submit Score'),
           ),
@@ -96,6 +103,7 @@ class _PlaySessionScreenState extends State<PlaySessionScreen> {
         children: [
           settingsButton,
           const Spacer(),
+          core,
           Text('Press the button when you want to submit the score'),
           endGameButton,
           backButton,
