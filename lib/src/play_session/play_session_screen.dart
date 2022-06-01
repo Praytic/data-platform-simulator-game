@@ -39,8 +39,6 @@ class _PlaySessionScreenState extends State<PlaySessionScreen> {
 
   late DateTime _startOfPlay;
 
-  late Timer _timer;
-
   @override
   Widget build(BuildContext context) {
     final palette = context.watch<Palette>();
@@ -69,7 +67,7 @@ class _PlaySessionScreenState extends State<PlaySessionScreen> {
     );
     final core = Consumer<GameSessionState>(
       builder: (context, levelState, child) => MoneyScreen(
-        value: 10,
+        value: levelState.progress,
         onChanged: (value) => levelState.setProgress(value),
       ),
     );

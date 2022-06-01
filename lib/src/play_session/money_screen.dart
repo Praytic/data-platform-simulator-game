@@ -5,20 +5,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:game_template/src/game_internals/entities.dart';
 import 'package:logging/logging.dart' hide Level;
 
-
 class MoneyScreen extends StatefulWidget {
-  final ValueChanged<int> onChanged;
+  final ValueChanged<Timer> onChanged;
   final int value;
-  final int limit;
 
   const MoneyScreen(
-      {Key? key,
-        required this.onChanged,
-        required this.value,
-        this.limit = 0})
+      {Key? key, required this.onChanged, required this.value})
       : super(key: key);
 
   @override
@@ -28,37 +22,26 @@ class MoneyScreen extends StatefulWidget {
 class _MoneyScreenState extends State<MoneyScreen> {
   static final _log = Logger('MoneyScreen');
 
-  late int _money;
-  List<Employee> _employees = [Employee()];
-
   late Timer _timer;
-
-  int get money => _money;
 
   @override
   Widget build(BuildContext context) {
-    return Text('Money: $_money');
+    return Text('Money: ${widget.value}');
   }
 
   @override
   void initState() {
     super.initState();
 
-    _money = widget.value;
     _timer = Timer.periodic(Duration(seconds: 1), (Timer t) {
-      setState(() {
-        _money -= _employees
-            .map((e) => e.costPerSecond * t.tick)
-            .reduce((value, element) => value + element);
-        _log.info('Money: $_money');
-        widget.onChanged(_money);
-      });
+      widget.onChanged(t);
+      _log.info('Money: ${widget.value}');
     });
   }
 
   @override
   void dispose() {
-    super.dispose();
     _timer.cancel();
+    super.dispose();
   }
 }
