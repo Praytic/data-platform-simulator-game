@@ -2,7 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -16,30 +15,28 @@ import 'entities.dart';
 /// the value of [moneyLowerBoundary] reaches [moneyLowerBoundary].
 class GameSessionState extends ChangeNotifier {
   final VoidCallback onWin;
-
   final int moneyLowerBoundary;
-  final int initialMoney;
+
+  int initialMoney;
+  int timeElapsed;
 
   GameSessionState({
     required this.onWin,
     this.moneyLowerBoundary = 0,
-  this.initialMoney = 10,
+    this.initialMoney = 10,
+    required this.timeElapsed,
   });
 
-  int _progress = 0;
-  List<Employee> _employees = [Employee()];
+  int get progress => initialMoney - timeElapsed;
 
-  int get progress => _progress;
-
-  void setProgress(Timer gameTimer) {
-    _progress = initialMoney -
-        _employees
-            .map((e) => e.costPerSecond * gameTimer.tick)
-            .reduce((value, element) => value + element);
+  void refreshProgress() {
     notifyListeners();
-    if (_progress <= moneyLowerBoundary) {
-      gameTimer.cancel();
+    if (progress <= moneyLowerBoundary) {
       onWin();
     }
+  }
+
+  void addMoney() {
+    initialMoney += 10;
   }
 }

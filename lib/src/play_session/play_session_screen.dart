@@ -19,7 +19,6 @@ import '../in_app_purchase/in_app_purchase.dart';
 import '../player_progress/player_progress.dart';
 import '../style/confetti.dart';
 import '../style/palette.dart';
-import 'money_screen.dart';
 
 class PlaySessionScreen extends StatefulWidget {
   const PlaySessionScreen({Key? key}) : super(key: key);
@@ -32,18 +31,20 @@ class _PlaySessionScreenState extends State<PlaySessionScreen> {
   static final _log = Logger('PlaySessionScreen');
 
   static const _celebrationDuration = Duration(milliseconds: 2000);
-
   static const _preCelebrationDuration = Duration(milliseconds: 500);
 
   bool _duringCelebration = false;
+  int timeElapsed = 0;
 
   late DateTime _startOfPlay;
+  late Timer _timer;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.watch<Palette>();
     final victoryStateProvider = ChangeNotifierProvider(
-      create: (context) => GameSessionState(onWin: _playerWon),
+      create: (context) =>
+          GameSessionState(onWin: _playerWon, timeElapsed: _timer.tick),
     );
     final celebrationScreen = SizedBox.expand(
       child: Visibility(
@@ -65,10 +66,32 @@ class _PlaySessionScreenState extends State<PlaySessionScreen> {
         ),
       ),
     );
-    final core = Consumer<GameSessionState>(
-      builder: (context, levelState, child) => MoneyScreen(
-        value: levelState.progress,
-        onChanged: (value) => levelState.setProgress(value),
+    final moneyCounter = Consumer<GameSessionState>(
+      builder: (context, levelState, child) =>
+          Text('Money: ${levelState.progress}'),
+    );
+    final notifyListeners = Consumer<GameSessionState>(
+      builder: (context, state, child) => Padding(
+        padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 8.0),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () => {state.refreshProgress()},
+            child: const Text('Notify listeners'),
+          ),
+        ),
+      ),
+    );
+    final addMoneyButton = Consumer<GameSessionState>(
+      builder: (context, state, child) => Padding(
+        padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 8.0),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () => {state.addMoney()},
+            child: const Text('+10 Credits'),
+          ),
+        ),
       ),
     );
     final endGameButton = Consumer<GameSessionState>(
@@ -77,8 +100,9 @@ class _PlaySessionScreenState extends State<PlaySessionScreen> {
         child: SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: () => {
-              state.onWin(),
+            onPressed: () {
+              _timer.cancel();
+              state.onWin();
             },
             child: const Text('Submit Score'),
           ),
@@ -101,8 +125,10 @@ class _PlaySessionScreenState extends State<PlaySessionScreen> {
         children: [
           settingsButton,
           const Spacer(),
-          core,
+          moneyCounter,
           Text('Press the button when you want to submit the score'),
+          addMoneyButton,
+          notifyListeners,
           endGameButton,
           backButton,
         ],
@@ -130,6 +156,9 @@ class _PlaySessionScreenState extends State<PlaySessionScreen> {
     super.initState();
 
     _startOfPlay = DateTime.now();
+    _timer = Timer.periodic(Duration(seconds: 1), (Timer t) {
+      timeElapsed = t.tick;
+    });
 
     // Preload ad for the win screen.
     final adsRemoved =
@@ -181,5 +210,11 @@ class _PlaySessionScreenState extends State<PlaySessionScreen> {
     if (!mounted) return;
 
     GoRouter.of(context).go('/play/won', extra: {'score': score});
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
   }
 }
