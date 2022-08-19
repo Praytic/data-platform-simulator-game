@@ -6,6 +6,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:game_template/src/main_menu/persistent_widget.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
@@ -61,9 +62,9 @@ void guardedMain() {
     Logger.root.level = Level.WARNING;
   }
   Logger.root.onRecord.listen((record) {
-    debugPrint('${record.level.name}: ${record.time}: '
-        '${record.loggerName}: '
-        '${record.message}');
+    // debugPrint('${record.level.name}: ${record.time}: '
+    //     '${record.loggerName}: '
+    //     '${record.message}');
   });
 
   WidgetsFlutterBinding.ensureInitialized();
@@ -153,7 +154,9 @@ class MyApp extends StatelessWidget {
 
   static final mainMenuRoute = GoRoute(
       path: '/',
-      builder: (context, state) => const MainMenuScreen(key: Key('main menu')),
+      builder: (context, state) {
+        return const MainMenuScreen(key: Key('main menu'));
+      },
       routes: [
         playRoute,
         settingsRoute,
@@ -243,12 +246,14 @@ class MyApp extends StatelessWidget {
         routeInformationParser: _router.routeInformationParser,
         routerDelegate: _router.routerDelegate,
         scaffoldMessengerKey: scaffoldMessengerKey,
+        builder: (context, state) {
+          return BaseWidget(child: state!);
+        },
       );
     });
     return AppLifecycleObserver(
       child: MultiProvider(
         providers: [
-          playerProgressProvider,
           playerProgressProvider,
           gamesServicesControllerProvider,
           adsControllerProvider,
